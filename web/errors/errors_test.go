@@ -52,3 +52,20 @@ func TestErrorHandler(t *testing.T) {
 		assert.Empty(t, rec.Header().Get(echo.HeaderRetryAfter))
 	})
 }
+
+func TestHTMLErrorHandler(t *testing.T) {
+	t.Run("CommittedResponseIsLeftUntouched", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/static/app.js", nil)
+		rec := httptest.NewRecorder()
+		c := echo.New().NewContext(req, rec)
+
+		c.Response().WriteHeader(http.StatusOK)
+		_, err := c.Response().Write([]byte("partial body"))
+		require.NoError(t, err)
+
+		HTMLErrorHandler(echo.NewHTTPError(http.StatusInternalServerError, "broken pipe"), c)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, "partial body", rec.Body.String())
+	})
+}
